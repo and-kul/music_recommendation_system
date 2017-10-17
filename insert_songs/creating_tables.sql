@@ -2,14 +2,17 @@
 -- DROP TABLE IF EXISTS songs;
 
 CREATE TABLE songs (
-  id text PRIMARY KEY
+  id SERIAL PRIMARY KEY,
+  echo_nest_id TEXT NOT NULL UNIQUE
 );
+
+CREATE INDEX ON songs(echo_nest_id);
 
 
 CREATE TABLE track_metadata (
   track_id    TEXT PRIMARY KEY,
+  song_id     INTEGER NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
   title       TEXT,
-  song_id     TEXT NOT NULL REFERENCES songs (id) ON DELETE CASCADE,
   release     TEXT,
   artist_id   TEXT NOT NULL,
   artist_name TEXT,
