@@ -5,9 +5,7 @@ CREATE TABLE songs (
   id SERIAL PRIMARY KEY,
   echo_nest_id TEXT NOT NULL UNIQUE
 );
-
-CREATE INDEX ON songs(echo_nest_id);
-
+-- unique index for echo_nest_id already created
 
 CREATE TABLE track_metadata (
   track_id    TEXT PRIMARY KEY,
