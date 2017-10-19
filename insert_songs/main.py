@@ -64,4 +64,5 @@ artist_id, artist_name, duration, "year") VALUES (%s, %s, %s, %s, %s, %s, %s, %s
         row = sqlite_cur.fetchone()
 
     sqlite_cur.close()
+    postgres_conn.commit()
     postgres_cur.close()
