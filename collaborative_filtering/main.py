@@ -7,6 +7,7 @@ import psycopg2
 from sklearn.model_selection import train_test_split
 import random
 import time
+from pandas import DataFrame
 
 from config import Config
 from item_based_filtering import ItemBasedFiltering
@@ -18,9 +19,8 @@ random.seed("music")
 # q = 1
 test_proportion = 0.2
 minimum_songs_per_user = 2
-songs_count = 1000
-users_count = 1000
-
+songs_count = 20
+users_count = 20
 select_top_songs_sql = """SELECT song_id FROM top_songs ORDER BY position ASC LIMIT %s;"""
 select_top_users_sql = """SELECT user_id FROM top_users ORDER BY position ASC LIMIT %s;"""
 
@@ -142,9 +142,18 @@ print("--- %s seconds ---" % (time.time() - start_time))
 
 item_based_filtering = ItemBasedFiltering(X_train, X_test, secret_songs)
 
-for q in [1]:
+from_q_and_alpha_to_MAP = DataFrame(None, index=[1, 2, 3, 4, 5],
+                                    columns=[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], dtype=np.float64)
+
+for q in [1, 2, 3, 4, 5]:
     for alpha in [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]:
-        print("alpha = {0}, q = {1}, MAP = {2:.6f}".format(alpha, q, item_based_filtering.calculate_MAP(alpha=alpha, q=q)))
+        MAP = item_based_filtering.calculate_MAP(alpha=alpha, q=q)
+        print("alpha = {0}, q = {1}, MAP = {2:.6f}".format(alpha, q, MAP))
+        from_q_and_alpha_to_MAP.loc[q, alpha] = MAP
         print("--- %s seconds ---" % (time.time() - start_time))
 
     print()
+
+from_q_and_alpha_to_MAP.to_csv("results.csv", float_format="%.4f")
+
+
