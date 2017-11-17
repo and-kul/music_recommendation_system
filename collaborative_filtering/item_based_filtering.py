@@ -4,7 +4,8 @@ from typing import List
 
 
 class ItemBasedFiltering:
-    def __init__(self, X_train: csr_matrix, X_test: csr_matrix, secret_songs: List[List[int]]):
+    def __init__(self, X_train: csr_matrix, X_test: csr_matrix, secret_songs: List[List[int]], data_is_binary: bool):
+        self.data_is_binary = data_is_binary
         self.X_train = X_train
         self.X_test = X_test
         self.secret_songs = secret_songs
@@ -14,20 +15,28 @@ class ItemBasedFiltering:
 
     def calculate_songs_similarity(self, alpha, q) -> np.ndarray:
         songs_similarity = np.zeros((self.songs_count, self.songs_count))
-
         column_matrix = self.X_train.tocsc()
 
-        for song_i in range(self.songs_count):
-            song_i_users_count = column_matrix[:, song_i].count_nonzero()
-            for song_j in range(self.songs_count):
-                song_j_users_count = column_matrix[:, song_j].count_nonzero()
+        if self.data_is_binary:
+            for song_i in range(self.songs_count):
+                song_i_users_count = column_matrix[:, song_i].count_nonzero()
+                for song_j in range(self.songs_count):
+                    song_j_users_count = column_matrix[:, song_j].count_nonzero()
+                    intersection_size = column_matrix[:, song_i].multiply(column_matrix[:, song_j]).count_nonzero()
 
-                intersection_size = column_matrix[:, song_i].multiply(column_matrix[:, song_j]).count_nonzero()
+                    similarity = (intersection_size / (
+                        song_i_users_count ** alpha * song_j_users_count ** (1 - alpha))) ** q
+                    songs_similarity[song_i, song_j] = similarity
+        else:
+            for song_i in range(self.songs_count):
+                song_i_sum_of_squares = float(column_matrix[:, song_i].power(2).sum(axis=0))
+                for song_j in range(self.songs_count):
+                    song_j_sum_of_squares = float(column_matrix[:, song_j].power(2).sum(axis=0))
+                    dot_product = float(column_matrix[:, song_i].multiply(column_matrix[:, song_j]).sum(axis=0))
 
-                similarity = (intersection_size / (
-                    song_i_users_count ** alpha * song_j_users_count ** (1 - alpha))) ** q
-
-                songs_similarity[song_i, song_j] = similarity
+                    similarity = (dot_product / (
+                        song_i_sum_of_squares ** alpha * song_j_sum_of_squares ** (1 - alpha))) ** q
+                    songs_similarity[song_i, song_j] = similarity
 
         return songs_similarity
 
@@ -42,7 +51,7 @@ class ItemBasedFiltering:
             known_songs_list = self.X_test[test_user].nonzero()[1].tolist()
 
             for known_song in known_songs_list:
-                scores += songs_similarity[known_song]
+                scores += songs_similarity[known_song] * float(self.X_test[test_user, known_song])
 
             known_songs_set = set(known_songs_list)
 

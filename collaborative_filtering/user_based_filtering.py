@@ -4,7 +4,8 @@ from typing import List
 
 
 class UserBasedFiltering:
-    def __init__(self, X_train: csr_matrix, X_test: csr_matrix, secret_songs: List[List[int]]):
+    def __init__(self, X_train: csr_matrix, X_test: csr_matrix, secret_songs: List[List[int]], data_is_binary: bool):
+        self.data_is_binary = data_is_binary
         self.X_train = X_train
         self.X_test = X_test
         self.secret_songs = secret_songs
@@ -16,16 +17,27 @@ class UserBasedFiltering:
         # from [test_user, train_user] to similarity
         users_similarity = np.zeros((self.test_size, self.train_size))
 
-        for test_user in range(self.test_size):
-            test_user_songs_count = self.X_test[test_user].count_nonzero()
-            for train_user in range(self.train_size):
-                train_user_songs_count = self.X_train[train_user].count_nonzero()
-                intersection_size = self.X_test.getrow(test_user).multiply(
-                    self.X_train.getrow(train_user)).count_nonzero()
+        if self.data_is_binary:
+            for test_user in range(self.test_size):
+                test_user_songs_count = self.X_test[test_user].count_nonzero()
+                for train_user in range(self.train_size):
+                    train_user_songs_count = self.X_train[train_user].count_nonzero()
+                    intersection_size = self.X_test[test_user].multiply(
+                        self.X_train[train_user]).count_nonzero()
 
-                similarity = (intersection_size / (
-                    test_user_songs_count ** alpha * train_user_songs_count ** (1 - alpha))) ** q
-                users_similarity[test_user, train_user] = similarity
+                    similarity = (intersection_size / (
+                        test_user_songs_count ** alpha * train_user_songs_count ** (1 - alpha))) ** q
+                    users_similarity[test_user, train_user] = similarity
+        else:
+            for test_user in range(self.test_size):
+                test_user_sum_of_squares = float(self.X_test[test_user].power(2).sum(axis=1))
+                for train_user in range(self.train_size):
+                    train_user_sum_of_squares = float(self.X_train[train_user].power(2).sum(axis=1))
+                    dot_product = float(self.X_test[test_user].multiply(self.X_train[train_user]).sum(axis=1))
+
+                    similarity = (dot_product / (
+                        test_user_sum_of_squares ** alpha * train_user_sum_of_squares ** (1 - alpha))) ** q
+                    users_similarity[test_user, train_user] = similarity
 
         return users_similarity
 
@@ -38,7 +50,7 @@ class UserBasedFiltering:
             scores = np.zeros(self.songs_count)
             for train_user in range(self.train_size):
                 scores += (
-                    self.X_train.getrow(train_user).multiply(
+                    self.X_train[train_user].multiply(
                         users_similarity[test_user, train_user])).toarray().reshape(
                     (self.songs_count,))
 
