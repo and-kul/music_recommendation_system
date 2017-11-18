@@ -21,8 +21,8 @@ random.seed("music")
 test_proportion = 0.2
 minimum_songs_per_user = 2
 minimum_users_per_song = 4
-users_count = 100
-songs_count = 400
+users_count = 200
+songs_count = 2000
 
 
 def get_average_songs_per_user(dataset) -> float:
@@ -96,7 +96,7 @@ X_test = X_test.tocsr()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
-filtering = ItemBasedFiltering(X_train, X_test, secret_songs, data_is_binary=True)
+filtering = UserBasedFiltering(X_train, X_test, secret_songs, data_is_binary=True)
 # filtering = CombinedFiltering(X_train, X_test, secret_songs, data_is_binary=True,
 #                               alpha_for_user_based=0.3, q_for_user_based=4,
 #                               alpha_for_item_based=0.7, q_for_item_based=5)
@@ -117,7 +117,7 @@ for q in options_for_q:
 
     print()
 
-from_q_and_alpha_to_MAP.to_csv("results.csv", float_format="%.6f")
+from_q_and_alpha_to_MAP.to_csv("user_based_200_2000.csv", float_format="%.6f")
 
 # options_for_gamma = [x/100 for x in range(90, 101, 1)]
 # from_gamma_to_MAP = DataFrame(None, index=options_for_gamma, columns=["MAP"], dtype=np.float64)

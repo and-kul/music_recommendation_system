@@ -16,14 +16,20 @@ class UserBasedFiltering:
     def calculate_users_similarity(self, alpha, q) -> np.ndarray:
         # from [test_user, train_user] to similarity
         users_similarity = np.zeros((self.test_size, self.train_size))
+        X_train = self.X_train.toarray()
+        X_test = self.X_test.toarray()
+
+        songs_count_for_train_user = [0] * self.train_size
+        for train_user in range(self.train_size):
+            songs_count_for_train_user[train_user] = np.count_nonzero(X_train[train_user])
+
 
         if self.data_is_binary:
             for test_user in range(self.test_size):
-                test_user_songs_count = self.X_test[test_user].count_nonzero()
+                test_user_songs_count = np.count_nonzero(X_test[test_user])
                 for train_user in range(self.train_size):
-                    train_user_songs_count = self.X_train[train_user].count_nonzero()
-                    intersection_size = self.X_test[test_user].multiply(
-                        self.X_train[train_user]).count_nonzero()
+                    train_user_songs_count = songs_count_for_train_user[train_user]
+                    intersection_size = np.count_nonzero(X_test[test_user] * X_train[train_user])
 
                     similarity = (intersection_size / (
                         test_user_songs_count ** alpha * train_user_songs_count ** (1 - alpha))) ** q
