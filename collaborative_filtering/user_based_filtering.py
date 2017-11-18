@@ -41,18 +41,25 @@ class UserBasedFiltering:
 
         return users_similarity
 
+
+    def get_scores_for_test_user(self, test_user: int, users_similarity: np.ndarray) -> np.ndarray:
+        scores = np.zeros(self.songs_count)
+        for train_user in range(self.train_size):
+            scores += (
+                self.X_train[train_user].multiply(
+                    users_similarity[test_user, train_user])).toarray().reshape(
+                (self.songs_count,))
+        return scores
+
+
+
     def calculate_MAP(self, alpha: float, q: float) -> float:
         users_similarity = self.calculate_users_similarity(alpha, q)
 
         sum_of_average_precisions = 0.0
 
         for test_user in range(self.test_size):
-            scores = np.zeros(self.songs_count)
-            for train_user in range(self.train_size):
-                scores += (
-                    self.X_train[train_user].multiply(
-                        users_similarity[test_user, train_user])).toarray().reshape(
-                    (self.songs_count,))
+            scores = self.get_scores_for_test_user(test_user, users_similarity)
 
             known_songs = set(self.X_test[test_user].nonzero()[1].tolist())
 

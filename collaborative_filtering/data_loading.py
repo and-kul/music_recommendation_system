@@ -38,14 +38,29 @@ def remove_users_with_few_songs(dataset: lil_matrix, threshold: int) -> lil_matr
     return dataset[good_users]
 
 
+def remove_songs_with_few_users(dataset: lil_matrix, threshold: int) -> lil_matrix:
+    good_songs = set(range(dataset.shape[1]))
+    column_matrix = dataset.tocsc()
+
+    for i in range(dataset.shape[1]):
+        if column_matrix[:, i].count_nonzero() < threshold:
+            good_songs.remove(i)
+
+    good_songs = list(good_songs)
+    result = column_matrix[:, good_songs].tolil()
+
+    return result
 
 
-def get_dataset(users_count: int, songs_count: int, minimum_songs_per_user: int, make_binary=False,
-                make_log=False, add_one=False) -> lil_matrix:
+def get_dataset(users_count: int, songs_count: int,
+                minimum_songs_per_user: int, minimum_users_per_song: int,
+                make_binary=False, make_log=False, add_one=False) -> lil_matrix:
     if make_binary and make_log:
         raise Exception("cannot be binary and log at the same time")
     if add_one and not make_log:
         raise Exception("add_one available only with make_log")
+    if make_log and not add_one:
+        raise Exception("log(x) instead of log(x+1) leads to data loss")
 
 
     conn = None
@@ -88,7 +103,7 @@ def get_dataset(users_count: int, songs_count: int, minimum_songs_per_user: int,
             elif make_binary:
                 dataset[user_pos, song_pos] = 1
             else:
-                dataset = play_count
+                dataset[user_pos, song_pos] = play_count
 
         cur.close()
     except psycopg2.DatabaseError as error:
@@ -99,5 +114,6 @@ def get_dataset(users_count: int, songs_count: int, minimum_songs_per_user: int,
             conn.close()
 
     dataset = remove_users_with_few_songs(dataset, threshold=minimum_songs_per_user)
+    dataset = remove_songs_with_few_users(dataset, threshold=minimum_users_per_song)
 
     return dataset

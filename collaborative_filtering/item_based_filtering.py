@@ -41,17 +41,26 @@ class ItemBasedFiltering:
         return songs_similarity
 
 
+    def get_scores_for_test_user(self, test_user: int, songs_similarity: np.ndarray) -> np.ndarray:
+        scores = np.zeros(self.songs_count)
+        known_songs_list = self.X_test[test_user].nonzero()[1].tolist()
+
+        for known_song in known_songs_list:
+            scores += songs_similarity[known_song] * float(self.X_test[test_user, known_song])
+
+        return scores
+
+
+
     def calculate_MAP(self, alpha: float, q: float) -> float:
         songs_similarity = self.calculate_songs_similarity(alpha=alpha, q=q)
 
         sum_of_average_precisions = 0.0
 
         for test_user in range(self.test_size):
-            scores = np.zeros(self.songs_count)
+            scores = self.get_scores_for_test_user(test_user, songs_similarity)
+            # todo: remove redundancy
             known_songs_list = self.X_test[test_user].nonzero()[1].tolist()
-
-            for known_song in known_songs_list:
-                scores += songs_similarity[known_song] * float(self.X_test[test_user, known_song])
 
             known_songs_set = set(known_songs_list)
 
