@@ -15,24 +15,29 @@ class ItemBasedFiltering:
 
     def calculate_songs_similarity(self, alpha, q) -> np.ndarray:
         songs_similarity = np.zeros((self.songs_count, self.songs_count))
-        column_matrix = self.X_train.tocsc()
+        array = self.X_train.toarray()
+        users_count_for_song = [0] * self.songs_count
+
+        for song_i in range(self.songs_count):
+            users_count_for_song[song_i] = np.count_nonzero(array[:, song_i])
+
 
         if self.data_is_binary:
             for song_i in range(self.songs_count):
-                song_i_users_count = column_matrix[:, song_i].count_nonzero()
+                song_i_users_count = users_count_for_song[song_i]
                 for song_j in range(self.songs_count):
-                    song_j_users_count = column_matrix[:, song_j].count_nonzero()
-                    intersection_size = column_matrix[:, song_i].multiply(column_matrix[:, song_j]).count_nonzero()
+                    song_j_users_count = users_count_for_song[song_j]
+                    intersection_size = np.count_nonzero(array[:, song_i] * array[:, song_j])
 
                     similarity = (intersection_size / (
                         song_i_users_count ** alpha * song_j_users_count ** (1 - alpha))) ** q
                     songs_similarity[song_i, song_j] = similarity
         else:
             for song_i in range(self.songs_count):
-                song_i_sum_of_squares = float(column_matrix[:, song_i].power(2).sum(axis=0))
+                song_i_sum_of_squares = float(array[:, song_i].power(2).sum(axis=0))
                 for song_j in range(self.songs_count):
-                    song_j_sum_of_squares = float(column_matrix[:, song_j].power(2).sum(axis=0))
-                    dot_product = float(column_matrix[:, song_i].multiply(column_matrix[:, song_j]).sum(axis=0))
+                    song_j_sum_of_squares = float(array[:, song_j].power(2).sum(axis=0))
+                    dot_product = float(array[:, song_i].multiply(array[:, song_j]).sum(axis=0))
 
                     similarity = (dot_product / (
                         song_i_sum_of_squares ** alpha * song_j_sum_of_squares ** (1 - alpha))) ** q

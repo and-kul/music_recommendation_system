@@ -8,6 +8,7 @@ import random
 import time
 from pandas import DataFrame
 
+from combined_filtering import CombinedFiltering
 from data_loading import get_dataset
 from item_based_filtering import ItemBasedFiltering
 from user_based_filtering import UserBasedFiltering
@@ -20,8 +21,18 @@ random.seed("music")
 test_proportion = 0.2
 minimum_songs_per_user = 2
 minimum_users_per_song = 4
-users_count = 1000
-songs_count = 1000
+users_count = 100
+songs_count = 400
+
+
+def get_average_songs_per_user(dataset) -> float:
+    return dataset.count_nonzero() / dataset.shape[0]
+
+
+def get_average_users_per_song(dataset) -> float:
+    return dataset.count_nonzero() / dataset.shape[1]
+
+
 
 
 
@@ -29,11 +40,15 @@ start_time = time.time()
 
 dataset = get_dataset(users_count, songs_count,
                       minimum_songs_per_user, minimum_users_per_song,
-                      make_binary=False, make_log=False, add_one=False)
+                      make_binary=True, make_log=False, add_one=False)
 
 print("Data sparsity:", dataset.count_nonzero() / (dataset.shape[0] * dataset.shape[1]))
 
 print("songs_count =", dataset.shape[1])
+
+
+
+
 
 
 
@@ -54,6 +69,11 @@ train_size = X_train.shape[0]
 test_size = X_test.shape[0]
 print("train_size =", train_size)
 print("test_size =", test_size)
+
+print("average songs_per_user:", get_average_songs_per_user(X_train))
+print("average users_per_song:", get_average_users_per_song(X_train))
+
+
 
 # pprint(X_test.toarray())
 
@@ -76,7 +96,10 @@ X_test = X_test.tocsr()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
-filtering = UserBasedFiltering(X_train, X_test, secret_songs, data_is_binary=False)
+filtering = ItemBasedFiltering(X_train, X_test, secret_songs, data_is_binary=True)
+# filtering = CombinedFiltering(X_train, X_test, secret_songs, data_is_binary=True,
+#                               alpha_for_user_based=0.3, q_for_user_based=4,
+#                               alpha_for_item_based=0.7, q_for_item_based=5)
 print(type(filtering))
 
 options_for_q = [1, 2, 3, 4, 5, 6, 7]
@@ -96,3 +119,13 @@ for q in options_for_q:
 
 from_q_and_alpha_to_MAP.to_csv("results.csv", float_format="%.6f")
 
+# options_for_gamma = [x/100 for x in range(90, 101, 1)]
+# from_gamma_to_MAP = DataFrame(None, index=options_for_gamma, columns=["MAP"], dtype=np.float64)
+#
+# for gamma in options_for_gamma:
+#     MAP = filtering.calculate_MAP(gamma)
+#     print("gamma = {0}, MAP = {1:.6f}".format(gamma, MAP))
+#     from_gamma_to_MAP.loc[gamma, "MAP"] = MAP
+#     print("--- %s seconds ---" % (time.time() - start_time))
+#
+# from_gamma_to_MAP.to_csv("combined_results.csv", float_format="%.6f")
