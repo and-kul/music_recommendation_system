@@ -2,6 +2,7 @@ from pprint import pprint
 from typing import List
 
 import numpy as np
+from statistics import median
 from scipy.sparse import lil_matrix, csr_matrix
 from sklearn.model_selection import train_test_split
 import random
@@ -21,13 +22,25 @@ random.seed("music")
 test_proportion = 0.2
 minimum_songs_per_user = 2
 minimum_users_per_song = 4
-users_count = 200
-songs_count = 2000
+users_count = 1000
+songs_count = 1000
+
+
+def get_median_for_songs_per_user(dataset) -> float:
+    songs_per_user = []
+    for i in range(dataset.shape[0]):
+        songs_per_user.append(dataset[i].count_nonzero())
+    return median(songs_per_user)
+
+def get_median_for_users_per_song(dataset) -> float:
+    users_per_song = []
+    for i in range(dataset.shape[1]):
+        users_per_song.append(dataset[:, i].count_nonzero())
+    return median(users_per_song)
 
 
 def get_average_songs_per_user(dataset) -> float:
     return dataset.count_nonzero() / dataset.shape[0]
-
 
 def get_average_users_per_song(dataset) -> float:
     return dataset.count_nonzero() / dataset.shape[1]
@@ -73,7 +86,8 @@ print("test_size =", test_size)
 print("average songs_per_user:", get_average_songs_per_user(X_train))
 print("average users_per_song:", get_average_users_per_song(X_train))
 
-
+print("median for songs_per_user:", get_median_for_songs_per_user(X_train))
+print("median for users_per_song:", get_median_for_users_per_song(X_train))
 
 # pprint(X_test.toarray())
 
@@ -96,36 +110,36 @@ X_test = X_test.tocsr()
 
 print("--- %s seconds ---" % (time.time() - start_time))
 
-filtering = UserBasedFiltering(X_train, X_test, secret_songs, data_is_binary=True)
-# filtering = CombinedFiltering(X_train, X_test, secret_songs, data_is_binary=True,
-#                               alpha_for_user_based=0.3, q_for_user_based=4,
-#                               alpha_for_item_based=0.7, q_for_item_based=5)
+# filtering = ItemBasedFiltering(X_train, X_test, secret_songs, data_is_binary=False)
+filtering = CombinedFiltering(X_train, X_test, secret_songs, data_is_binary=True,
+                              alpha_for_user_based=0.3, q_for_user_based=4,
+                              alpha_for_item_based=0.7, q_for_item_based=5)
 print(type(filtering))
 
-options_for_q = [1, 2, 3, 4, 5, 6, 7]
-options_for_alpha = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-
-from_q_and_alpha_to_MAP = DataFrame(None, index=options_for_q,
-                                    columns=options_for_alpha, dtype=np.float64)
-
-for q in options_for_q:
-    for alpha in options_for_alpha:
-        MAP = filtering.calculate_MAP(alpha=alpha, q=q)
-        print("alpha = {0}, q = {1}, MAP = {2:.6f}".format(alpha, q, MAP))
-        from_q_and_alpha_to_MAP.loc[q, alpha] = MAP
-        print("--- %s seconds ---" % (time.time() - start_time))
-
-    print()
-
-from_q_and_alpha_to_MAP.to_csv("user_based_200_2000.csv", float_format="%.6f")
-
-# options_for_gamma = [x/100 for x in range(90, 101, 1)]
-# from_gamma_to_MAP = DataFrame(None, index=options_for_gamma, columns=["MAP"], dtype=np.float64)
+# options_for_q = [1, 2, 3, 4, 5, 6, 7]
+# options_for_alpha = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 #
-# for gamma in options_for_gamma:
-#     MAP = filtering.calculate_MAP(gamma)
-#     print("gamma = {0}, MAP = {1:.6f}".format(gamma, MAP))
-#     from_gamma_to_MAP.loc[gamma, "MAP"] = MAP
-#     print("--- %s seconds ---" % (time.time() - start_time))
+# from_q_and_alpha_to_MAP = DataFrame(None, index=options_for_q,
+#                                     columns=options_for_alpha, dtype=np.float64)
 #
-# from_gamma_to_MAP.to_csv("combined_results.csv", float_format="%.6f")
+# for q in options_for_q:
+#     for alpha in options_for_alpha:
+#         MAP = filtering.calculate_MAP(alpha=alpha, q=q)
+#         print("alpha = {0}, q = {1}, MAP = {2:.6f}".format(alpha, q, MAP))
+#         from_q_and_alpha_to_MAP.loc[q, alpha] = MAP
+#         print("--- %s seconds ---" % (time.time() - start_time))
+#
+#     print()
+#
+# from_q_and_alpha_to_MAP.to_csv("item_based_1000_1000_raw.csv", float_format="%.6f")
+
+options_for_gamma = [x/100 for x in range(0, 110, 5)]
+from_gamma_to_MAP = DataFrame(None, index=options_for_gamma, columns=["MAP"], dtype=np.float64)
+
+for gamma in options_for_gamma:
+    MAP = filtering.calculate_MAP(gamma)
+    print("gamma = {0}, MAP = {1:.6f}".format(gamma, MAP))
+    from_gamma_to_MAP.loc[gamma, "MAP"] = MAP
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+from_gamma_to_MAP.to_csv("combined_results.csv", float_format="%.6f")
